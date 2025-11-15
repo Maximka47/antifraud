@@ -28,5 +28,3 @@ If you want the local development environment without Docker, install requiremen
 python -m pip install -r requirements/base.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-Enjoy — tell me if you want user auth, `/analyze` endpoint, or a React dashboard next.
