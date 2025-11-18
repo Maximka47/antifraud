@@ -7,6 +7,7 @@ from core.config import settings
 from core.logger import logger
 from database.session import get_database
 import ipaddress
+from datetime import datetime, timezone
 
 app = FastAPI(title="Anti-Fraud MVP", version="0.1")
 
@@ -61,6 +62,9 @@ async def collect(event: EventIn, request: Request):
             client_ip = request.client.host if request.client else None
 
     doc["client_ip"] = client_ip
+    # Add server-generated timezone-aware UTC timestamp for each event
+    # Use timezone-aware datetimes to satisfy linters and make intent explicit
+    doc["timestamp"] = datetime.now(timezone.utc)
     result = await db.events.insert_one(doc)
     logger.info("event_collected", extra={"event_id": str(result.inserted_id), "client_ip": doc["client_ip"]})
     return JSONResponse({"status": "ok", "id": str(result.inserted_id)})
