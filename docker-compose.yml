@@ -1,12 +1,8 @@
-version: '3.8'
-
 services:
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    ports:
-      - "8000:8000"
     environment:
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
@@ -16,7 +12,7 @@ services:
       - ./src/backend/static:/app/static:ro
 
   mongo:
-    image: mongo:6.0
+    image: mongo:8.0
     restart: unless-stopped
     volumes:
       - mongo_data:/data/db

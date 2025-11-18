@@ -1,0 +1,16 @@
+services:
+  proxy:
+    image: nginx:stable
+    container_name: antifraud-proxy-1
+    ports:
+      - "7778:7778"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - default
+
+# This file relies on the compose project network so services can reach each other.
+# Referencing `default` here without declaring it lets Docker Compose create the
+# network automatically for the current project.

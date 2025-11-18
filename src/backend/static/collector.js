@@ -9,6 +9,19 @@ async function sendFingerprint() {
     }
   };
 
+  // Try to obtain the client's public IP from a simple IP service and
+  // include it in the payload. This is convenient for testing but can be
+  // spoofed by clients, so prefer server-detected X-Forwarded-For in prod.
+  try {
+    const ipRes = await fetch('https://api.ipify.org?format=json');
+    if (ipRes.ok) {
+      const ipJson = await ipRes.json();
+      payload.client_ip = ipJson.ip;
+    }
+  } catch (e) {
+    // ignore failures to fetch public IP — continue without it
+  }
+
   try {
     const res = await fetch('/collect', {
       method: 'POST',
