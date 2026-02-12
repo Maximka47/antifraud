@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
+import base64
+from fastapi.encoders import jsonable_encoder
+from bson import ObjectId
 
 from models.event import EventIn
 from core.config import settings
@@ -17,8 +20,37 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/")
-async def index():
+async def index(request: Request):
+    # Log the incoming document request headers so we can capture navigation-style headers
+    try:
+        headers = dict(request.headers)
+    except Exception:
+        headers = {k: v for k, v in request.headers.items()}
+
+    # Normalize to lowercase keys for easier searching in logs
+    headers_norm = {k.lower(): v for k, v in headers.items()}
+    logger.info("document_request_headers", extra={"request_headers": headers_norm})
+
     return FileResponse('static/index.html')
+
+
+@app.get("/probe")
+async def probe(request: Request):
+    # Return a tiny 1x1 PNG with an ETag and cache-control so the browser
+    # may revalidate it (producing If-None-Match on revalidation). Log
+    # request headers so the server sees what the client sent for this GET.
+    try:
+        headers = dict(request.headers)
+    except Exception:
+        headers = {k: v for k, v in request.headers.items()}
+    headers_norm = {k.lower(): v for k, v in headers.items()}
+    logger.info("probe_request_headers", extra={"request_headers": headers_norm})
+
+    # 1x1 PNG (base64) transparent
+    png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
+    png = base64.b64decode(png_b64)
+    headers_out = {"ETag": '"probe-v1"', "Cache-Control": "public, max-age=0"}
+    return Response(content=png, media_type="image/png", headers=headers_out)
 
 
 # Note: we read `X-Forwarded-For` header directly below. If you run behind
@@ -67,4 +99,41 @@ async def collect(event: EventIn, request: Request):
     doc["timestamp"] = datetime.now(timezone.utc)
     result = await db.events.insert_one(doc)
     logger.info("event_collected", extra={"event_id": str(result.inserted_id), "client_ip": doc["client_ip"]})
-    return JSONResponse({"status": "ok", "id": str(result.inserted_id)})
+
+    # Echo back the stored event and the request headers so the frontend
+    # can render HTTP attributes and JS attributes for the user immediately.
+    try:
+        headers = dict(request.headers)
+    except Exception:
+        # fallback in case headers can't be converted directly
+        headers = {k: v for k, v in request.headers.items()}
+
+    # If the inserted operation added a Mongo ObjectId into `doc`, convert it to string
+    if isinstance(doc.get("_id"), ObjectId):
+        doc["_id"] = str(doc["_id"])
+
+    # Normalize header names to lowercase for consistent access
+    headers_norm = {k.lower(): v for k, v in headers.items()}
+
+    # Create an explicit ordered set of attributes (always present, may be empty)
+    ordered_attrs = {
+        "user_agent": headers_norm.get("user-agent", ""),
+        "accept": headers_norm.get("accept", ""),
+        "content_encoding": headers_norm.get("accept-encoding", ""),
+        "content_language": headers_norm.get("accept-language", ""),
+        "if_none_match": headers_norm.get("if-none-match", ""),
+        "upgrade_insecure_requests": headers_norm.get("upgrade-insecure-requests", ""),
+        "referer": headers_norm.get("referer", ""),
+    }
+
+    response_data = {
+        "status": "ok",
+        "id": str(result.inserted_id),
+        "event": doc,
+        "request_headers": headers_norm,
+        "ordered_headers": ordered_attrs,
+    }
+
+    # Use jsonable_encoder so datetimes and other non-JSON-native types
+    # (e.g., Python datetimes) are encoded to JSON-friendly values.
+    return JSONResponse(jsonable_encoder(response_data))

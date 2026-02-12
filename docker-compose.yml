@@ -9,7 +9,7 @@ services:
     depends_on:
       - mongo
     volumes:
-      - ./src/backend/static:/app/static:ro
+      - ./src/frontend:/app/static:ro
 
   mongo:
     image: mongo:8.0

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Anti-Fraud MVP Collector</title>
+    <link rel="stylesheet" href="/static/style.css?v=2" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Anti-Fraud MVP — Collector</h1>
+      <p>Click the button to send a sample fingerprint to the backend.</p>
+
+      <div class="controls">
+        <button id="send">Send Fingerprint</button>
+      </div>
+
+      <div id="result" class="card"></div>
+    <!-- Hidden probe image to capture GET headers (ETag/If-None-Match behavior) -->
+    <img id="probe-img" src="/probe" style="display:none" alt="probe" />
+
+    <section style="margin-top:24px;">
+      <h2>HTTP Headers Attributes</h2>
+      <input id="http-search" placeholder="Search for an attribute" style="width:100%;padding:8px;margin-bottom:8px;" />
+      <table id="http-attrs" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">Attribute</th>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">Value</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <details id="other-headers" style="margin-top:12px;">
+        <summary style="cursor:pointer;padding:8px;background:#f7f7f7;border:1px solid #e0e0e0;">Other headers (show/hide)</summary>
+        <div style="padding:8px;">
+          <table id="other-headers-table" style="width:100%;border-collapse:collapse;margin-top:8px;">
+            <thead>
+              <tr><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">Header</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">Value</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section style="margin-top:24px;">
+      <h2>JavaScript Attributes</h2>
+      <input id="js-search" placeholder="Search for an attribute" style="width:100%;padding:8px;margin-bottom:8px;" />
+      <table id="js-attrs" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">Attribute</th><th style="text-align:left;padding:8px;border-bottom:1px solid #ddd;">Value</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+    </div>
+    <script src="/static/collector.js?v=3"></script>
+  </body>
+</html>
