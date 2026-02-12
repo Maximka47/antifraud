@@ -60,9 +60,16 @@ async def probe(request: Request):
 
 
 @app.post("/collect")
-async def collect(event: EventIn, request: Request):
+async def collect(request: Request):
     db = get_database()
-    doc = event.dict(exclude_none=True)
+    # Read the full JSON payload so we store the complete fingerprint the
+    # client sent (not limited by the Pydantic EventIn model).
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    # Start document from the raw body (exclude None-like values later)
+    doc = {k: v for k, v in (body or {}).items()}
 
     # Determine the most likely *public* client IP using this preference order:
     # 1. X-Forwarded-For (first IP) if it appears to be a public address

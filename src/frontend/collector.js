@@ -58,10 +58,28 @@ async function sendFingerprint() {
   const payload = {
     user_agent: navigator.userAgent,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone_offset_minutes: new Date().getTimezoneOffset(),
     language: navigator.language,
+    // metadata: a rich object with various navigator and screen hints
     metadata: {
       platform: navigator.platform,
-      languages: navigator.languages || [navigator.language]
+      vendor: navigator.vendor,
+      languages: navigator.languages || [navigator.language],
+      deviceMemory: navigator.deviceMemory || null,
+      hardwareConcurrency: navigator.hardwareConcurrency || null,
+      cookieEnabled: navigator.cookieEnabled === undefined ? null : navigator.cookieEnabled,
+      doNotTrack: navigator.doNotTrack || null,
+      maxTouchPoints: navigator.maxTouchPoints || 0,
+      product: navigator.product || null,
+      userAgentData: (navigator.userAgentData && typeof navigator.userAgentData === 'object') ? navigator.userAgentData : null,
+      screen: {
+        width: (window.screen && window.screen.width) || null,
+        height: (window.screen && window.screen.height) || null,
+        availWidth: (window.screen && window.screen.availWidth) || null,
+        availHeight: (window.screen && window.screen.availHeight) || null,
+        colorDepth: (window.screen && window.screen.colorDepth) || null,
+        pixelDepth: (window.screen && window.screen.pixelDepth) || null
+      }
     }
   };
 
