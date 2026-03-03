@@ -54,6 +54,41 @@ function setupSearchListeners() {
 
 setupSearchListeners();
 
+// Create a small similarity bubble element (colored by percentage)
+function createSimBubble(pct) {
+  const span = document.createElement('span');
+  span.className = 'sim-bubble';
+  // apply inline styles to ensure bubble appearance across environments
+  span.style.display = 'inline-block';
+  span.style.padding = '4px 8px';
+  span.style.borderRadius = '999px';
+  span.style.fontSize = '12px';
+  span.style.fontWeight = '600';
+  span.style.color = '#ffffff';
+  span.style.minWidth = '36px';
+  span.style.textAlign = 'center';
+  span.style.lineHeight = '1';
+  span.style.verticalAlign = 'middle';
+  span.style.boxShadow = '0 1px 0 rgba(0,0,0,0.05)';
+
+  if (pct === '' || pct === null || typeof pct === 'undefined') {
+    span.style.background = 'transparent';
+    span.style.color = 'var(--muted)';
+    span.textContent = '';
+    return span;
+  }
+
+  const n = parseInt(pct, 10);
+  const nn = Number.isNaN(n) ? 0 : n;
+  let bg = '#9ca3ff'; // default blue
+  if (nn >= 85) bg = '#10b981'; // green
+  else if (nn >= 60) bg = '#f59e0b'; // amber
+  else if (nn > 0) bg = '#ef4444'; // red
+  span.style.background = bg;
+  span.textContent = String(nn) + '%';
+  return span;
+}
+
 async function sendFingerprint() {
   const payload = {
     user_agent: navigator.userAgent,
@@ -246,25 +281,27 @@ async function sendFingerprint() {
 
     // (escapeHtml is defined at module scope)
 
-    // Ordered attributes to show first (use lowercase header names)
+    // Ordered attributes to show first (headerName, compareKey, label)
     const ordered = [
-      ['user-agent', 'User agent'],
-      ['accept', 'Accept'],
-      ['accept-encoding', 'Content encoding'],
-      ['accept-language', 'Content language'],
-      ['if-none-match', 'If none match'],
-      ['upgrade-insecure-requests', 'Upgrade Insecure Requests'],
-      ['referer', 'Referer']
+      ['user-agent', 'user_agent', 'User agent'],
+      ['accept', 'accept', 'Accept'],
+      ['accept-encoding', 'content_encoding', 'Content encoding'],
+      ['accept-language', 'language', 'Content language'],
+      ['if-none-match', 'if_none_match', 'If none match'],
+      ['upgrade-insecure-requests', 'upgrade_insecure_requests', 'Upgrade Insecure Requests'],
+      ['referer', 'referer', 'Referer']
     ];
 
     const seen = new Set();
-    ordered.forEach(([key, label]) => {
+    ordered.forEach(([key, attrKey, label]) => {
       const value = headers[key] || '';
       seen.add(key);
       const tr = document.createElement('tr');
+      tr.dataset.attr = attrKey || key;
       tr.innerHTML = `
         <td style="padding:8px;border-bottom:1px solid #eee"><strong>${escapeHtml(label)}</strong></td>
         <td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(String(value))}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee"></td>
       `;
       httpTbody.appendChild(tr);
     });
@@ -275,9 +312,11 @@ async function sendFingerprint() {
     Object.keys(headers).forEach(key => {
       if (seen.has(key)) return;
       const tr = document.createElement('tr');
+      tr.dataset.attr = key;
       tr.innerHTML = `
         <td style="padding:8px;border-bottom:1px solid #eee"><strong>${escapeHtml(key)}</strong></td>
         <td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(String(headers[key]))}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee"></td>
       `;
       otherTbody.appendChild(tr);
     });
@@ -344,7 +383,8 @@ async function sendFingerprint() {
 
     const addRow = (name, value) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="padding:8px;border-bottom:1px solid #eee"><strong>${escapeHtml(name)}</strong></td><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(value === undefined || value === null ? '' : String(value))}</td>`;
+      tr.dataset.attr = name;
+      tr.innerHTML = `<td style="padding:8px;border-bottom:1px solid #eee"><strong>${escapeHtml(name)}</strong></td><td style="padding:8px;border-bottom:1px solid #eee">${escapeHtml(value === undefined || value === null ? '' : String(value))}</td><td style="padding:8px;border-bottom:1px solid #eee"></td>`;
       jsTbody.appendChild(tr);
     };
 
@@ -353,7 +393,7 @@ async function sendFingerprint() {
     // If we have a canvas preview (data URL), attach it inside the canvas_hash row's value cell
     try {
       const preview = payload.canvas_preview || (event && event.canvas_preview);
-      if (preview) {
+        if (preview) {
         // Find the row for canvas_hash in the JS attributes table
         const rows = document.querySelectorAll('#js-attrs tbody tr');
         for (let i = 0; i < rows.length; i++) {
@@ -401,6 +441,170 @@ async function sendFingerprint() {
 
     resultEl.appendChild(rawBtn);
     resultEl.appendChild(pre);
+
+    // Request similarity comparison from the backend and render results
+    try {
+      const cmpRes = await fetch('/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+        if (cmpRes.ok) {
+        const cmpJson = await cmpRes.json();
+        // Render similarity section at bottom of page
+        let simSection = document.getElementById('similarity-section');
+        if (!simSection) {
+          simSection = document.createElement('section');
+          simSection.id = 'similarity-section';
+          simSection.style.marginTop = '18px';
+        } else {
+          simSection.innerHTML = '';
+        }
+        const h = document.createElement('h2');
+        h.textContent = 'Similarity Matches (top 10)';
+        simSection.appendChild(h);
+
+        // Extract matches and uniques from response
+        const matches = cmpJson.matches || [];
+        // Render the 5 most unique IDs (returned as `unique_ids`)
+        const uniques = cmpJson.unique_ids || [];
+        if (uniques.length === 0) {
+          const p = document.createElement('p');
+          p.textContent = 'No unique IDs found.';
+          simSection.appendChild(p);
+        } else {
+          const list = document.createElement('div');
+          list.style.display = 'flex';
+          list.style.flexDirection = 'column';
+          list.style.gap = '8px';
+          uniques.forEach(u => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'flex-start';
+            row.style.border = '1px solid #f0f0f0';
+            row.style.padding = '8px';
+            row.style.borderRadius = '6px';
+
+            const left = document.createElement('div');
+            left.style.maxWidth = '80%';
+            left.style.wordBreak = 'break-all';
+            const title = document.createElement('div');
+            title.innerHTML = `<strong>${escapeHtml(u.id || '')}</strong>`;
+            left.appendChild(title);
+
+            // attributes details
+            const details = document.createElement('details');
+            details.style.marginTop = '6px';
+            const summary = document.createElement('summary');
+            summary.textContent = 'Attributes';
+            details.appendChild(summary);
+
+            const tbl = document.createElement('table');
+            tbl.style.width = '100%';
+            tbl.style.borderCollapse = 'collapse';
+            const thead = document.createElement('thead');
+            thead.innerHTML = '<tr><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd;">Attribute</th><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd;">Value</th><th style="text-align:left;padding:6px;border-bottom:1px solid #ddd;">Similarity</th></tr>';
+            tbl.appendChild(thead);
+            const tb = document.createElement('tbody');
+            const attrs = u.attributes || {};
+            const perObj = u.per_attribute || {};
+            Object.keys(attrs).forEach(k => {
+              try {
+                const tr = document.createElement('tr');
+                const tdK = document.createElement('td');
+                tdK.style.padding = '6px';
+                tdK.style.borderBottom = '1px solid #f5f5f5';
+                tdK.style.width = '40%';
+                tdK.innerHTML = `<strong>${escapeHtml(k)}</strong>`;
+
+                const tdV = document.createElement('td');
+                tdV.style.padding = '6px';
+                tdV.style.borderBottom = '1px solid #f5f5f5';
+                let val = attrs[k];
+                if (Array.isArray(val)) val = val.join(', ');
+                if (val === null || typeof val === 'undefined') val = '';
+                tdV.textContent = String(val);
+
+                const tdS = document.createElement('td');
+                tdS.style.padding = '6px';
+                tdS.style.borderBottom = '1px solid #f5f5f5';
+                const simVal = typeof perObj[k] !== 'undefined' ? perObj[k] : '';
+                tdS.appendChild(createSimBubble(simVal));
+
+                tr.appendChild(tdK);
+                tr.appendChild(tdV);
+                tr.appendChild(tdS);
+                tb.appendChild(tr);
+              } catch (e) {}
+            });
+            tbl.appendChild(tb);
+            details.appendChild(tbl);
+            left.appendChild(details);
+
+            const right = document.createElement('div');
+            right.style.marginLeft = '12px';
+            right.appendChild(createSimBubble(u.uniqueness));
+
+            row.appendChild(left);
+            row.appendChild(right);
+            list.appendChild(row);
+          });
+          simSection.appendChild(list);
+        }
+
+        // Append (or move) similarity section to bottom of main container
+        const container = document.querySelector('.container') || document.body;
+        container.appendChild(simSection);
+
+        // Fill similarity cells in existing tables from the top match (if any)
+        if (matches.length > 0) {
+          const top = matches[0];
+          const perTop = top.per_attribute || {};
+
+          // JS table rows
+          const jsRows = document.querySelectorAll('#js-attrs tbody tr');
+          jsRows.forEach(r => {
+            try {
+              const attr = r.dataset.attr;
+              const tds = r.querySelectorAll('td');
+              if (!tds || tds.length < 3) return;
+              const raw = (typeof perTop[attr] !== 'undefined' && perTop[attr] !== '') ? perTop[attr] : (cmpJson.incoming_similarity && typeof cmpJson.incoming_similarity[attr] !== 'undefined' ? cmpJson.incoming_similarity[attr] : '');
+              tds[2].innerHTML = '';
+              tds[2].appendChild(createSimBubble(raw));
+            } catch (e) {}
+          });
+
+          // HTTP ordered rows
+          const httpRows = document.querySelectorAll('#http-attrs tbody tr');
+          httpRows.forEach(r => {
+            try {
+              const attr = r.dataset.attr;
+              const tds = r.querySelectorAll('td');
+              if (!tds || tds.length < 3) return;
+              const raw = (typeof perTop[attr] !== 'undefined' && perTop[attr] !== '') ? perTop[attr] : (cmpJson.incoming_similarity && typeof cmpJson.incoming_similarity[attr] !== 'undefined' ? cmpJson.incoming_similarity[attr] : '');
+              tds[2].innerHTML = '';
+              tds[2].appendChild(createSimBubble(raw));
+            } catch (e) {}
+          });
+
+          // Other headers rows
+          const otherRows = document.querySelectorAll('#other-headers-table tbody tr');
+          otherRows.forEach(r => {
+            try {
+              const attr = r.dataset.attr;
+              const tds = r.querySelectorAll('td');
+              if (!tds || tds.length < 3) return;
+              const raw = (typeof perTop[attr] !== 'undefined' && perTop[attr] !== '') ? perTop[attr] : (cmpJson.incoming_similarity && typeof cmpJson.incoming_similarity[attr] !== 'undefined' ? cmpJson.incoming_similarity[attr] : '');
+              tds[2].innerHTML = '';
+              tds[2].appendChild(createSimBubble(raw));
+            } catch (e) {}
+          });
+        }
+      }
+    } catch (e) {
+      // ignore compare errors
+    }
 
   } catch (err) {
     document.getElementById('result').textContent = 'Error: ' + err;
