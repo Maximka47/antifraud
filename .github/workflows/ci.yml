@@ -46,6 +46,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Inject backend URL into frontend (if provided)
+        if: secrets.BACKEND_URL != ''
+        run: |
+          echo "Injecting BACKEND_URL into src/frontend/index.html"
+          BACKEND_URL=${{ secrets.BACKEND_URL }}
+          # replace the empty meta content with the provided backend URL
+          sed -i "s|<meta name=\"backend-base\" content=\"\" />|<meta name=\"backend-base\" content=\"${BACKEND_URL}\" />|g" src/frontend/index.html
       - name: Deploy frontend to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
