@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Inject backend URL into frontend (if provided)
-        if: secrets.BACKEND_URL != ''
+        if: ${{ secrets.BACKEND_URL != '' }}
         run: |
           echo "Injecting BACKEND_URL into src/frontend/index.html"
           BACKEND_URL=${{ secrets.BACKEND_URL }}

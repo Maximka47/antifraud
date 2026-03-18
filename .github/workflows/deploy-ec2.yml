@@ -1,0 +1,45 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install rsync (for file sync)
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
+      - name: Start ssh-agent and add private key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+
+      - name: Add EC2 host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Optionally upload .env from secrets
+        if: ${{ secrets.MONGO_URL != '' }}
+        run: |
+          printf 'MONGO_URL=%s\nMONGO_DB=%s\n' "${{ secrets.MONGO_URL }}" "${{ secrets.MONGO_DB }}" > .env.deploy
+          scp -o StrictHostKeyChecking=no .env.deploy ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/.env || true
+          rm .env.deploy
+
+      - name: Sync repository to EC2 (exclude git & workflow files)
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'mkdir -p ~/app'
+          rsync -av --delete --exclude='.git' --exclude='.github' --exclude='.venv' ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/
+
+      - name: Run docker compose on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'cd ~/app && docker compose pull || true && docker compose up -d --build'
+
+      - name: Print backend URL reminder
+        run: |
+          echo 'If your EC2 has a public DNS or domain, set the repository secret BACKEND_URL to the public base URL (example: https://ec2-1-2-3-4.compute-1.amazonaws.com or https://your.domain)'
