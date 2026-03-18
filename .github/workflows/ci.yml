@@ -28,13 +28,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute lowercase GHCR image tag
+        id: set_image
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"
+          echo "image=ghcr.io/${repo}:${GITHUB_SHA}" >> $GITHUB_OUTPUT
       - name: Build and push backend image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: Dockerfile.backend
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ${{ steps.set_image.outputs.image }}
 
   deploy-pages:
     needs: build-push
