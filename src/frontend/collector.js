@@ -54,6 +54,18 @@ function setupSearchListeners() {
 
 setupSearchListeners();
 
+// Determine backend base URL from meta tag `backend-base` (empty => same-origin)
+const _metaBackend = (document.querySelector('meta[name="backend-base"]') || {});
+const BACKEND_BASE = (_metaBackend.content || '').trim();
+// Configure probe image src: if BACKEND_BASE provided point to backend probe endpoint, otherwise use relative 'probe'
+try {
+  const probeImg = document.getElementById('probe-img');
+  if (probeImg) {
+    if (BACKEND_BASE) probeImg.src = BACKEND_BASE.replace(/\/$/, '') + '/probe';
+    else probeImg.src = 'probe';
+  }
+} catch (e) {}
+
 // Create a small similarity bubble element (colored by percentage)
 function createSimBubble(pct) {
   const span = document.createElement('span');
@@ -261,7 +273,8 @@ async function sendFingerprint() {
   }
 
   try {
-    const res = await fetch('/collect', {
+    const collectUrl = BACKEND_BASE ? BACKEND_BASE.replace(/\/$/, '') + '/collect' : '/collect';
+    const res = await fetch(collectUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
