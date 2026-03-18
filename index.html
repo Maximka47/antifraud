@@ -4,7 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Anti-Fraud MVP Collector</title>
-    <link rel="stylesheet" href="/static/style.css?v=2" />
+    <!-- Set `content` to your backend base URL (e.g. https://api.example.com) to enable sending fingerprints from the Pages site. Leave empty to use same-origin. -->
+    <meta name="backend-base" content="" />
+    <link rel="stylesheet" href="style.css?v=2" />
   </head>
   <body>
     <div class="container">
@@ -16,8 +18,8 @@
       </div>
 
       <div id="result" class="card"></div>
-    <!-- Hidden probe image to capture GET headers (ETag/If-None-Match behavior) -->
-    <img id="probe-img" src="/probe" style="display:none" alt="probe" />
+    <!-- Hidden probe image to capture GET headers (ETag/If-None-Match behavior). `collector.js` will set its `src`. -->
+    <img id="probe-img" src="" style="display:none" alt="probe" />
 
     <section style="margin-top:24px;">
       <h2>HTTP Headers Attributes</h2>
@@ -57,6 +59,6 @@
       </table>
     </section>
     </div>
-    <script src="/static/collector.js?v=3"></script>
+    <script src="collector.js?v=3"></script>
   </body>
 </html>
