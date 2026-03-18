@@ -1,3 +1,4 @@
+````markdown
 # Anti-Fraud MVP
 
 Minimal Anti-Fraud MVP (Sprint 1) — FastAPI backend with a single `/collect` endpoint, MongoDB storage, JSON logging, and a simple static page that posts a fingerprint payload.
@@ -28,3 +29,4 @@ If you want the local development environment without Docker, install requiremen
 python -m pip install -r requirements/base.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+````
