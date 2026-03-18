@@ -13,6 +13,9 @@ on:
 jobs:
   build-push:
     runs-on: ubuntu-latest
+    env:
+      MONGO_URL: ${{ secrets.MONGO_URL }}
+      MONGO_DB: ${{ secrets.MONGO_DB }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up QEMU
@@ -31,7 +34,7 @@ jobs:
           context: .
           file: Dockerfile.backend
           push: true
-          tags: ${{ format('ghcr.io/{0}/{1}:{2}', toLower(github.repository_owner), toLower(github.event.repository.name), github.sha) }}
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
 
   deploy-pages:
     needs: build-push
