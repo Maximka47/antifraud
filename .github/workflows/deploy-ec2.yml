@@ -25,11 +25,12 @@ jobs:
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Optionally upload .env from secrets
-        if: ${{ secrets.MONGO_URL }}
         run: |
-          printf 'MONGO_URL=%s\nMONGO_DB=%s\n' "${{ secrets.MONGO_URL }}" "${{ secrets.MONGO_DB }}" > .env.deploy
-          scp -o StrictHostKeyChecking=no .env.deploy ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/.env || true
-          rm .env.deploy
+          if [ -n "${{ secrets.MONGO_URL }}" ]; then
+            printf 'MONGO_URL=%s\nMONGO_DB=%s\n' "${{ secrets.MONGO_URL }}" "${{ secrets.MONGO_DB }}" > .env.deploy
+            scp -o StrictHostKeyChecking=no .env.deploy ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/.env || true
+            rm .env.deploy
+          fi
 
       - name: Sync repository to EC2 (exclude git & workflow files)
         run: |
