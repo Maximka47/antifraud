@@ -46,4 +46,4 @@ jobs:
 
       - name: Print backend URL reminder
         run: |
-          echo 'If your EC2 has a public DNS or domain, set the repository secret BACKEND_URL to the public base URL (example: https://ec2-1-2-3-4.compute-1.amazonaws.com or https://your.domain)'
+          echo 'If your EC2 has a public DNS or domain, set the repository secret BACKEND_URL to the public base URL
