@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Debug: check required secrets presence
+      - name: "Debug: check required secrets presence"
         run: |
           set -x
           if [ -n "${{ secrets.EC2_HOST }}" ]; then echo "EC2_HOST: present"; else echo "EC2_HOST: missing"; fi
@@ -54,4 +54,4 @@ jobs:
 
       - name: Print backend URL reminder
         run: |
-          echo 'If your EC2 has a public DNS or domain, set the repository secret BACKEND_URL to the public base URL
+          echo 'If your EC2 has a public DNS or domain, set the repository secret BACKEND_URL to the public base URL'
