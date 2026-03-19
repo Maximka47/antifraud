@@ -10,6 +10,7 @@ services:
       - mongo
     volumes:
       - ./src/frontend:/app/static:ro
+    ports: ["8000:8000"]
 
   mongo:
     image: mongo:8.0
