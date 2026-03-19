@@ -14,7 +14,7 @@ from database.session import get_database
 import ipaddress
 from datetime import datetime, timezone
 
-app = FastAPI(title="Anti-Fraud MVP", version="0.1")
+app = FastAPI(title="Anti-Fraud MVP", version="0.3")
 
 # Configure CORS so the static frontend (GitHub Pages or other origin)
 # can call `/collect` and `/probe`. Set `BACKEND_ALLOWED_ORIGINS` env

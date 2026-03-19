@@ -3,14 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
     environment:
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
-    depends_on:
-      - mongo
+      - BACKEND_ALLOWED_ORIGINS=https://maximka47.github.io
     volumes:
       - ./src/frontend:/app/static:ro
-    ports: ["8000:8000"]
 
   mongo:
     image: mongo:8.0
