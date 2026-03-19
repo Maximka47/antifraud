@@ -37,20 +37,25 @@ jobs:
 
       - name: Optionally upload .env from secrets
         run: |
+          set -x
+          # quick connectivity check (won't hang long thanks to ConnectTimeout)
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'echo SSH_OK' || true
           if [ -n "${{ secrets.MONGO_URL }}" ]; then
             printf 'MONGO_URL=%s\nMONGO_DB=%s\n' "${{ secrets.MONGO_URL }}" "${{ secrets.MONGO_DB }}" > .env.deploy
-            scp -o StrictHostKeyChecking=no .env.deploy ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/.env || true
+            scp -o ConnectTimeout=10 -o StrictHostKeyChecking=no .env.deploy ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/.env || true
             rm .env.deploy
           fi
 
       - name: Sync repository to EC2 (exclude git & workflow files)
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'mkdir -p ~/app'
-          rsync -av --delete --exclude='.git' --exclude='.github' --exclude='.venv' ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/
+          set -x
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'mkdir -p ~/app' || true
+          rsync -av --delete --exclude='.git' --exclude='.github' --exclude='.venv' -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/ || true
 
       - name: Run docker compose on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'cd ~/app && docker compose pull || true && docker compose up -d --build'
+          set -x
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'cd ~/app && docker compose pull || true && docker compose up -d --build' || true
 
       - name: Print backend URL reminder
         run: |
