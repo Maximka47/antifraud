@@ -20,5 +20,18 @@ services:
     ports:
       - "27017:27017"
 
+  nginx:
+    image: nginx:stable
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./deploy/nginx/certbot/www:/var/www/certbot
+      - ./deploy/nginx/certs:/etc/letsencrypt
+    depends_on:
+      - backend
+
 volumes:
   mongo_data:
