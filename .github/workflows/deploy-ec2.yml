@@ -50,7 +50,7 @@ jobs:
         run: |
           set -x
           ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'mkdir -p ~/app' || true
-          rsync -av --delete --exclude='.git' --exclude='.github' --exclude='.venv' -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/ || true
+          rsync -av --delete --exclude='.git' --exclude='.github' --exclude='.venv' --exclude='.env' -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10" ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/ || true
 
       - name: Run docker compose on EC2
         run: |
