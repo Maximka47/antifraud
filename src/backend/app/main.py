@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+import os
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse, Response
 import base64
@@ -13,6 +15,24 @@ import ipaddress
 from datetime import datetime, timezone
 
 app = FastAPI(title="Anti-Fraud MVP", version="0.1")
+
+# Configure CORS so the static frontend (GitHub Pages or other origin)
+# can call `/collect` and `/probe`. Set `BACKEND_ALLOWED_ORIGINS` env
+# to a comma-separated list (e.g. "https://<owner>.github.io") or leave
+# empty to allow all origins (not recommended for production).
+allowed = os.environ.get("BACKEND_ALLOWED_ORIGINS", "*")
+if allowed.strip() == "*":
+    origins = ["*"]
+else:
+    origins = [o.strip() for o in allowed.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # serve static UI from ./static (mounted in Dockerfile)
 # Mount static files under /static so API routes like /collect remain reachable.
