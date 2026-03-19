@@ -21,9 +21,11 @@ jobs:
 
       - name: Add EC2 host to known_hosts
         run: |
-            set -x
-            mkdir -p ~/.ssh
+          set -x
+          mkdir -p ~/.ssh
+          if [ -n "${{ secrets.EC2_HOST }}" ]; then
             ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          fi
 
       - name: Optionally upload .env from secrets
         run: |
